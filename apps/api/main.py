@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apps.api.routes.health import router as health_router
 from apps.api.routes.market import router as market_router
+from apps.api.routes.analytics import router as analytics_router
 from swaram.config.settings import get_settings
 from swaram.core.logging import get_logger, setup_logging
 from swaram.storage.postgres import close_db, init_db
@@ -57,6 +58,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(market_router)
+    app.include_router(analytics_router)
 
     return app
 

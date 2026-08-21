@@ -9,6 +9,7 @@ from swaram.models.market_data import (
     OpenInterest,
 )
 from swaram.models.health import ProviderHealthRecord
+from swaram.models.analytics import MarketStructureEvent, IndicatorSnapshot
 
 __all__ = [
     "Base",
@@ -21,4 +22,6 @@ __all__ = [
     "FundingRate",
     "OpenInterest",
     "ProviderHealthRecord",
+    "MarketStructureEvent",
+    "IndicatorSnapshot",
 ]
