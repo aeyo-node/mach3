@@ -77,6 +77,17 @@ AGENT_TOOL_SCHEMAS: List[Dict[str, Any]] = [
             "required": ["symbol"],
         },
     },
+    {
+        "name": "get_market_anomalies",
+        "description": "Get real-time feed of detected market anomalies (flash crashes, spread explosions, volume surges) for warning detection.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "symbol": {"type": "string", "description": "Symbol name (optional)"},
+                "limit": {"type": "integer", "default": 10, "description": "Max alerts to return"}
+            },
+        },
+    },
 ]
 
 
@@ -217,10 +228,8 @@ class AgentToolExecutor:
             if not inst:
                 return {"error": f"Instrument '{canonical}' not found."}
 
-            market_repo = MarketDataRepository(self.session)
-            ob_snap = await market_repo.get_latest_orderbook(inst.id)
-            bids = ob_snap.bids if ob_snap and ob_snap.bids else []
-            asks = ob_snap.asks if ob_snap and ob_snap.asks else []
+            from apps.api.routes.orderflow import _get_or_fetch_orderbook
+            bids, asks = await _get_or_fetch_orderbook(self.session, inst)
 
             from swaram.analytics.orderbook import analyze_orderbook_depth
             res = analyze_orderbook_depth(bids, asks)
@@ -245,7 +254,11 @@ class AgentToolExecutor:
 
             market_repo = MarketDataRepository(self.session)
             latest_funding = await market_repo.get_latest_funding(inst.id)
-            funding_val = latest_funding.funding_rate if latest_funding else 0.0001
+            funding_val = (
+                latest_funding.funding_rate
+                if (latest_funding and latest_funding.funding_rate is not None)
+                else 0.0001
+            )
 
             from swaram.analytics.positioning import analyze_positioning
             res = analyze_positioning(
@@ -263,6 +276,44 @@ class AgentToolExecutor:
                 "open_interest_delta_24h_pct": res.open_interest_delta_24h_pct,
                 "positioning_regime": res.positioning_regime,
                 "extreme_funding_warning": res.extreme_funding_warning,
+            }
+
+        elif tool_name == "get_market_anomalies":
+            symbol = arguments.get("symbol")
+            limit = arguments.get("limit", 10)
+            
+            from sqlalchemy import desc, select
+            from swaram.models.anomaly import MarketAnomalyRecord
+            
+            inst_id = None
+            if symbol:
+                canonical = resolve_canonical(symbol)
+                inst_repo = InstrumentRepository(self.session)
+                inst = await inst_repo.get_by_canonical(canonical)
+                if inst:
+                    inst_id = inst.id
+
+            stmt = select(MarketAnomalyRecord).order_by(desc(MarketAnomalyRecord.timestamp)).limit(limit)
+            if inst_id:
+                stmt = stmt.where(MarketAnomalyRecord.instrument_id == inst_id)
+
+            result = await self.session.execute(stmt)
+            records = result.scalars().all()
+            
+            from swaram.core.time import iso_utc
+            return {
+                "anomalies": [
+                    {
+                        "timestamp": iso_utc(r.timestamp),
+                        "provider": r.provider,
+                        "anomaly_type": r.anomaly_type,
+                        "severity": r.severity,
+                        "description": r.description,
+                        "trigger_value": r.trigger_value,
+                        "threshold_value": r.threshold_value,
+                    }
+                    for r in records
+                ]
             }
 
         else:

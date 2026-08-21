@@ -12,8 +12,10 @@ class PositioningResult:
     extreme_funding_warning: bool
 
 
-def calculate_annualized_funding_yield(funding_rate: float) -> float:
+def calculate_annualized_funding_yield(funding_rate: Optional[float]) -> Optional[float]:
     """Calculate annualized funding yield (assuming 8-hour funding intervals = 3 realizations per day)."""
+    if funding_rate is None:
+        return None
     return float(funding_rate * 3.0 * 365.0 * 100.0)
 
 

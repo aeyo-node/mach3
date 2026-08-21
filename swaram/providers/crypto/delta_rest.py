@@ -54,6 +54,16 @@ class DeltaRestClient:
                             return res
                     logger.warning(f"Failed to fetch Delta candles for {symbol}", status=resp.status)
                     return []
+    async def get_l2_orderbook(self, symbol: str) -> Optional[Dict[str, Any]]:
+        """Fetch L2 Orderbook snapshot from Delta REST API."""
+        url = f"{self.base_url}/v2/l2orderbook/{symbol}"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return data.get("result")
+                    return None
         except Exception as e:
-            logger.warning(f"Error fetching Delta candles for {symbol}", error=str(e))
-            return []
+            logger.warning(f"Error fetching Delta L2 orderbook for {symbol}", error=str(e))
+            return None

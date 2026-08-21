@@ -345,17 +345,18 @@ class DeltaWebSocketProvider(BaseMarketDataProvider):
 
     def _parse_orderbook(self, data: Dict[str, Any]) -> List[object]:
         events: List[object] = []
-        sym = data.get("symbol", "")
+        payload = data.get("data") if isinstance(data.get("data"), dict) else data
+        sym = payload.get("symbol", "")
         if not sym:
             return events
 
         canonical = to_canonical("delta", sym)
-        raw_ts = data.get("timestamp")
+        raw_ts = payload.get("timestamp")
         src_dt = from_epoch_us(raw_ts) if raw_ts else now_utc()
         self.health.record_message(src_dt)
 
-        raw_bids = data.get("buy") or data.get("bids") or []
-        raw_asks = data.get("sell") or data.get("asks") or []
+        raw_bids = payload.get("buy") or payload.get("bids") or []
+        raw_asks = payload.get("sell") or payload.get("asks") or []
 
         bids = []
         for b in raw_bids:
