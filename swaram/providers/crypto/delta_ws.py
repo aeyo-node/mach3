@@ -196,23 +196,29 @@ class DeltaWebSocketProvider(BaseMarketDataProvider):
 
     def _parse_ticker(self, data: Dict[str, Any]) -> List[object]:
         events: List[object] = []
-        sym = data.get("symbol", "")
+        payload = data.get("data") if isinstance(data.get("data"), dict) else data
+        sym = payload.get("symbol", "")
         if not sym:
             return events
 
         canonical = to_canonical("delta", sym)
-        raw_ts = data.get("timestamp")
+        raw_ts = payload.get("timestamp")
         src_dt = from_epoch_us(raw_ts) if raw_ts else now_utc()
         self.health.record_message(src_dt)
 
-        quotes = data.get("quotes") or {}
-        bid = float(quotes.get("best_bid") or data.get("best_bid") or 0.0) or None
-        ask = float(quotes.get("best_ask") or data.get("best_ask") or 0.0) or None
-        bid_size = float(quotes.get("best_bid_size") or data.get("best_bid_size") or 0.0) or None
-        ask_size = float(quotes.get("best_ask_size") or data.get("best_ask_size") or 0.0) or None
-        last = float(data.get("close") or data.get("last_price") or 0.0) or None
-        mark = float(data.get("mark_price") or 0.0) or None
-        spot = float(data.get("spot_price") or 0.0) or None
+        quotes = payload.get("quotes") or {}
+        bid_val = quotes.get("best_bid") or payload.get("best_bid") or payload.get("bid")
+        ask_val = quotes.get("best_ask") or payload.get("best_ask") or payload.get("ask")
+        bid_sz_val = quotes.get("best_bid_size") or payload.get("best_bid_size") or quotes.get("bid_size")
+        ask_sz_val = quotes.get("best_ask_size") or payload.get("best_ask_size") or quotes.get("ask_size")
+        
+        bid = float(bid_val) if bid_val is not None and float(bid_val) > 0 else None
+        ask = float(ask_val) if ask_val is not None and float(ask_val) > 0 else None
+        bid_size = float(bid_sz_val) if bid_sz_val is not None else None
+        ask_size = float(ask_sz_val) if ask_sz_val is not None else None
+        last = float(payload.get("close") or payload.get("last_price") or payload.get("price") or 0.0) or None
+        mark = float(payload.get("mark_price") or 0.0) or None
+        spot = float(payload.get("spot_price") or 0.0) or None
 
         # Create TickEvent
         tick = TickEvent(

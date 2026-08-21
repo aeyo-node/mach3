@@ -71,7 +71,54 @@ class AgentToolExecutor:
             symbol = arguments.get("symbol", "BTCUSD")
             canonical = resolve_canonical(symbol)
             snap = await self.redis_store.get_snapshot(canonical)
-            return {"symbol": symbol, "canonical_symbol": canonical, "snapshot": snap}
+            
+            if not snap:
+                inst_repo = InstrumentRepository(self.session)
+                inst = await inst_repo.get_by_canonical(canonical)
+                if inst:
+                    if inst.venue == "delta":
+                        from swaram.providers.crypto.delta_rest import DeltaRestClient
+                        from swaram.config.settings import get_settings
+                        from swaram.core.time import iso_utc
+                        rest_client = DeltaRestClient(get_settings().delta_rest_url)
+                        ticker_data = await rest_client.get_ticker(inst.provider_symbol)
+                        if ticker_data:
+                            quotes = ticker_data.get("quotes") or {}
+                            last = float(ticker_data.get("close") or ticker_data.get("last_price") or 0.0) or None
+                            bid = float(quotes.get("best_bid") or ticker_data.get("best_bid") or 0.0) or None
+                            ask = float(quotes.get("best_ask") or ticker_data.get("best_ask") or 0.0) or None
+                            spread = round(ask - bid, 4) if ask and bid else None
+                            snap = {
+                                "canonical_symbol": canonical,
+                                "bid": bid,
+                                "ask": ask,
+                                "mid": round((bid + ask) / 2.0, 4) if bid and ask else last,
+                                "last": last,
+                                "spread": spread,
+                                "timestamp": iso_utc(),
+                            }
+                            await self.redis_store.update_snapshot(canonical, snap)
+                    elif inst.venue == "ctrader":
+                        from swaram.providers.forex.ctrader import _fetch_all_prices, SPREADS
+                        from swaram.core.time import iso_utc
+                        prices = await _fetch_all_prices([inst.provider_symbol])
+                        mid = prices.get(inst.provider_symbol)
+                        if mid:
+                            spread = SPREADS.get(inst.provider_symbol, 0.0001)
+                            bid = round(mid - spread / 2.0, 5)
+                            ask = round(mid + spread / 2.0, 5)
+                            snap = {
+                                "canonical_symbol": canonical,
+                                "bid": bid,
+                                "ask": ask,
+                                "mid": mid,
+                                "last": mid,
+                                "spread": spread,
+                                "timestamp": iso_utc(),
+                            }
+                            await self.redis_store.update_snapshot(canonical, snap)
+
+            return {"symbol": symbol, "canonical_symbol": canonical, "snapshot": snap or {}}
 
         elif tool_name == "get_technical_indicators":
             symbol = arguments.get("symbol", "BTCUSD")

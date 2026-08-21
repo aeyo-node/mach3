@@ -54,10 +54,13 @@ async def get_hermes_context(
 ) -> Dict[str, Any]:
     canonical = resolve_canonical(symbol)
     
-    # 1. Snapshot
-    snapshot = await redis_store.get_snapshot(canonical)
+    executor = AgentToolExecutor(session, redis_store)
 
-    # 2. Indicators & Structure
+    # 1. Snapshot with REST fallback
+    snap_res = await executor.execute("get_market_snapshot", {"symbol": symbol})
+    snapshot = snap_res.get("snapshot")
+
+    # 2. Indicators & Structure with REST fallback
     inst_repo = InstrumentRepository(session)
     inst = await inst_repo.get_by_canonical(canonical)
     
@@ -65,24 +68,9 @@ async def get_hermes_context(
     market_structure = None
     
     if inst:
-        market_repo = MarketDataRepository(session)
-        db_candles = await market_repo.get_recent_candles(inst.id, timeframe=timeframe, limit=200)
-        if db_candles:
-            events = [
-                CandleEvent(
-                    canonical_symbol=canonical,
-                    provider=c.provider,
-                    timeframe=c.timeframe,
-                    timestamp=c.timestamp,
-                    open=c.open,
-                    high=c.high,
-                    low=c.low,
-                    close=c.close,
-                    volume=c.volume,
-                    trade_count=c.trade_count,
-                )
-                for c in db_candles
-            ]
+        from apps.api.routes.analytics import _get_or_fetch_candles
+        events = await _get_or_fetch_candles(session, inst, canonical, timeframe)
+        if events:
             analytics_snap = compute_analytics(canonical, timeframe, events)
             res_dict = analytics_snap.to_dict()
             indicators = res_dict["indicators"]
