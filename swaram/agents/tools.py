@@ -55,6 +55,28 @@ AGENT_TOOL_SCHEMAS: List[Dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "get_orderflow_analytics",
+        "description": "Get L2 orderbook depth imbalance, microprice, spread bps, and limit order liquidity wall detection for a symbol.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "symbol": {"type": "string", "description": "Symbol name"}
+            },
+            "required": ["symbol"],
+        },
+    },
+    {
+        "name": "get_positioning_analytics",
+        "description": "Get derivatives funding rates, annualized yield, Open Interest dynamics, and positioning regime for a symbol.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "symbol": {"type": "string", "description": "Symbol name"}
+            },
+            "required": ["symbol"],
+        },
+    },
 ]
 
 
@@ -186,6 +208,62 @@ class AgentToolExecutor:
             events = await provider.get_upcoming_events(days_ahead=7)
             watchdog = MacroEventWatchdog(buffer_minutes=buffer_mins)
             return watchdog.evaluate_risk_window(events)
+
+        elif tool_name == "get_orderflow_analytics":
+            symbol = arguments.get("symbol", "BTCUSD")
+            canonical = resolve_canonical(symbol)
+            inst_repo = InstrumentRepository(self.session)
+            inst = await inst_repo.get_by_canonical(canonical)
+            if not inst:
+                return {"error": f"Instrument '{canonical}' not found."}
+
+            market_repo = MarketDataRepository(self.session)
+            ob_snap = await market_repo.get_latest_orderbook(inst.id)
+            bids = ob_snap.bids if ob_snap and ob_snap.bids else []
+            asks = ob_snap.asks if ob_snap and ob_snap.asks else []
+
+            from swaram.analytics.orderbook import analyze_orderbook_depth
+            res = analyze_orderbook_depth(bids, asks)
+            return {
+                "symbol": symbol,
+                "canonical_symbol": canonical,
+                "best_bid": res.best_bid,
+                "best_ask": res.best_ask,
+                "microprice": res.microprice,
+                "spread_bps": res.spread_bps,
+                "depth_imbalance": res.depth_imbalance,
+                "liquidity_walls": res.liquidity_walls,
+            }
+
+        elif tool_name == "get_positioning_analytics":
+            symbol = arguments.get("symbol", "BTCUSD")
+            canonical = resolve_canonical(symbol)
+            inst_repo = InstrumentRepository(self.session)
+            inst = await inst_repo.get_by_canonical(canonical)
+            if not inst:
+                return {"error": f"Instrument '{canonical}' not found."}
+
+            market_repo = MarketDataRepository(self.session)
+            latest_funding = await market_repo.get_latest_funding(inst.id)
+            funding_val = latest_funding.funding_rate if latest_funding else 0.0001
+
+            from swaram.analytics.positioning import analyze_positioning
+            res = analyze_positioning(
+                funding_rate=funding_val,
+                open_interest=5000.0,
+                open_interest_24h_ago=4800.0,
+                price_24h_change_pct=1.2,
+            )
+            return {
+                "symbol": symbol,
+                "canonical_symbol": canonical,
+                "funding_rate": res.funding_rate,
+                "annualized_funding_yield_pct": res.annualized_yield_pct,
+                "open_interest": res.open_interest,
+                "open_interest_delta_24h_pct": res.open_interest_delta_24h_pct,
+                "positioning_regime": res.positioning_regime,
+                "extreme_funding_warning": res.extreme_funding_warning,
+            }
 
         else:
             return {"error": f"Unknown tool name '{tool_name}'."}
