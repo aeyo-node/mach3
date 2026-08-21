@@ -50,6 +50,18 @@ DEFAULT_SYMBOL_MAP: Dict[str, Dict[str, str]] = {
         "quote": "USD",
         "ctrader": "XAGUSD",
     },
+    "COMMODITY:WTI/USD": {
+        "asset_class": "commodity",
+        "base": "WTI",
+        "quote": "USD",
+        "ctrader": "WTIUSD",
+    },
+    "RATE:US10Y": {
+        "asset_class": "rate",
+        "base": "US10Y",
+        "quote": "USD",
+        "ctrader": "US10Y",
+    },
 }
 
 # Reverse index: (provider, provider_symbol) -> canonical
@@ -99,16 +111,24 @@ def to_canonical(provider: str, symbol: str) -> str:
         return "CRYPTO:BTC/USD"
     elif sym in ("ETHUSD", "ETHUSDT"):
         return "CRYPTO:ETH/USD"
-    elif sym in ("EURUSD",):
+    elif sym == "EURUSD":
         return "FX:EUR/USD"
-    elif sym in ("GBPUSD",):
+    elif sym == "GBPUSD":
         return "FX:GBP/USD"
-    elif sym in ("USDJPY",):
+    elif sym == "USDJPY":
         return "FX:USD/JPY"
-    elif sym in ("XAUUSD", "GOLD"):
+    elif sym == "USDCHF":
+        return "FX:USD/CHF"
+    elif sym == "AUDUSD":
+        return "FX:AUD/USD"
+    elif sym in ("XAUUSD", "GOLD", "GCF"):
         return "METAL:XAU/USD"
-    elif sym in ("XAGUSD", "SILVER"):
+    elif sym in ("XAGUSD", "SILVER", "SIF"):
         return "METAL:XAG/USD"
+    elif sym in ("WTIUSD", "CL", "CLF", "OIL"):
+        return "COMMODITY:WTI/USD"
+    elif sym in ("US10Y", "TNX"):
+        return "RATE:US10Y"
 
     # Default fallback
     return f"UNKNOWN:{symbol.upper()}"
@@ -119,7 +139,7 @@ def resolve_canonical(input_str: str) -> str:
     input_str = input_str.strip().upper()
     if ":" in input_str and "/" in input_str:
         return input_str
-    
+
     # Common short names
     clean = input_str.replace("/", "").replace("-", "").replace("_", "")
     if clean in ("BTC", "BTCUSD", "BTCUSDT"):
@@ -132,10 +152,18 @@ def resolve_canonical(input_str: str) -> str:
         return "FX:GBP/USD"
     if clean == "USDJPY":
         return "FX:USD/JPY"
+    if clean == "USDCHF":
+        return "FX:USD/CHF"
+    if clean == "AUDUSD":
+        return "FX:AUD/USD"
     if clean in ("XAUUSD", "GOLD"):
         return "METAL:XAU/USD"
     if clean in ("XAGUSD", "SILVER"):
         return "METAL:XAG/USD"
+    if clean in ("WTIUSD", "OIL", "WTI"):
+        return "COMMODITY:WTI/USD"
+    if clean in ("US10Y", "TNX"):
+        return "RATE:US10Y"
 
     # Guess format
     if "/" in input_str:
@@ -151,7 +179,7 @@ def to_provider_symbol(canonical: str, provider: str) -> str:
     meta = DEFAULT_SYMBOL_MAP.get(canonical_upper)
     if meta and provider.lower() in meta:
         return meta[provider.lower()]
-    
+
     # Fallback to base+quote
     parsed = parse_canonical(canonical_upper)
     return f"{parsed.base}{parsed.quote}"

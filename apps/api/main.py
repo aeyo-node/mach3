@@ -58,9 +58,9 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health_router)
-    app.include_router(market_router)
-    app.include_router(analytics_router)
-    app.include_router(macro_router)
+    app.include_router(macro_router)        # specific: /macro/*, /market/universe — must be before market_router
+    app.include_router(analytics_router)    # specific: /market/{symbol}/indicators, /market/{symbol}/structure
+    app.include_router(market_router)       # catch-all: /market/{symbol}
 
     return app
 

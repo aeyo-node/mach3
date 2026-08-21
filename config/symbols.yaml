@@ -77,3 +77,25 @@ symbols:
     active: true
     providers:
       ctrader: "XAGUSD"
+
+  # Commodities
+  - canonical: "COMMODITY:WTI/USD"
+    asset_class: "commodity"
+    base_asset: "WTI"
+    quote_asset: "USD"
+    tick_size: 0.01
+    lot_size: 1
+    active: true
+    providers:
+      ctrader: "WTIUSD"
+
+  # Interest Rates
+  - canonical: "RATE:US10Y"
+    asset_class: "rate"
+    base_asset: "US10Y"
+    quote_asset: "USD"
+    tick_size: 0.001
+    lot_size: 1
+    active: true
+    providers:
+      ctrader: "US10Y"
