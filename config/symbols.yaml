@@ -1,0 +1,79 @@
+# Swaram Symbol Definitions & Mappings
+
+symbols:
+  # Tier 1 Crypto
+  - canonical: "CRYPTO:BTC/USD"
+    asset_class: "crypto"
+    base_asset: "BTC"
+    quote_asset: "USD"
+    tick_size: 0.5
+    lot_size: 0.001
+    active: true
+    providers:
+      delta: "BTCUSD"
+      bybit: "BTCUSDT"
+      deribit: "BTC-PERPETUAL"
+
+  - canonical: "CRYPTO:ETH/USD"
+    asset_class: "crypto"
+    base_asset: "ETH"
+    quote_asset: "USD"
+    tick_size: 0.05
+    lot_size: 0.01
+    active: true
+    providers:
+      delta: "ETHUSD"
+      bybit: "ETHUSDT"
+      deribit: "ETH-PERPETUAL"
+
+  # Tier 1 Forex
+  - canonical: "FX:EUR/USD"
+    asset_class: "fx"
+    base_asset: "EUR"
+    quote_asset: "USD"
+    tick_size: 0.00001
+    lot_size: 1000
+    active: true
+    providers:
+      ctrader: "EURUSD"
+
+  - canonical: "FX:GBP/USD"
+    asset_class: "fx"
+    base_asset: "GBP"
+    quote_asset: "USD"
+    tick_size: 0.00001
+    lot_size: 1000
+    active: true
+    providers:
+      ctrader: "GBPUSD"
+
+  - canonical: "FX:USD/JPY"
+    asset_class: "fx"
+    base_asset: "USD"
+    quote_asset: "JPY"
+    tick_size: 0.001
+    lot_size: 1000
+    active: true
+    providers:
+      ctrader: "USDJPY"
+
+  # Tier 1 Metals
+  - canonical: "METAL:XAU/USD"
+    asset_class: "metal"
+    base_asset: "XAU"
+    quote_asset: "USD"
+    tick_size: 0.01
+    lot_size: 1
+    active: true
+    providers:
+      ctrader: "XAUUSD"
+
+  - canonical: "METAL:XAG/USD"
+    asset_class: "metal"
+    base_asset: "XAG"
+    quote_asset: "USD"
+    tick_size: 0.001
+    lot_size: 50
+    active: true
+    providers:
+      ctrader: "XAGUSD"

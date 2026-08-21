@@ -1,0 +1,89 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: swaram-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-swaram}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-swaram_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-swaram_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-swaram} -d ${POSTGRES_DB:-swaram_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - swaram-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: swaram-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - swaram-net
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
+    container_name: swaram-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-swaram}:${POSTGRES_PASSWORD:-swaram_secret}@postgres:5432/${POSTGRES_DB:-swaram_db}
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: INFO
+      TIMEZONE: UTC
+      USER_TIMEZONE: Asia/Kolkata
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - swaram-net
+
+  collector-delta:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.collector
+    container_name: swaram-collector-delta
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-swaram}:${POSTGRES_PASSWORD:-swaram_secret}@postgres:5432/${POSTGRES_DB:-swaram_db}
+      REDIS_URL: redis://redis:6379/0
+      DELTA_WS_URL: wss://public-socket.india.delta.exchange
+      LOG_LEVEL: INFO
+      TIMEZONE: UTC
+      USER_TIMEZONE: Asia/Kolkata
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - swaram-net
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  swaram-net:
+    driver: bridge

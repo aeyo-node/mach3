@@ -1,0 +1,38 @@
+# Swaram Provider Configuration
+
+providers:
+  delta:
+    enabled: true
+    type: "crypto_ws"
+    ws_url: "wss://public-socket.india.delta.exchange"
+    rest_url: "https://cdn.india.delta.exchange"
+    heartbeat_interval_sec: 15
+    reconnect_base_delay_sec: 1.0
+    reconnect_max_delay_sec: 30.0
+    stale_threshold_sec: 10.0
+    channels:
+      - "v2/ticker"
+      - "all_trades"
+      - "candlestick_1m"
+      - "l2_orderbook"
+      - "mark_price"
+    symbols:
+      - "BTCUSD"
+      - "ETHUSD"
+
+  bybit:
+    enabled: false
+    type: "crypto_ws"
+    ws_url: "wss://stream.bybit.com/v5/public/linear"
+    stale_threshold_sec: 10.0
+
+  deribit:
+    enabled: false
+    type: "crypto_ws"
+    ws_url: "wss://www.deribit.com/ws/api/v2"
+    stale_threshold_sec: 15.0
+
+  ctrader:
+    enabled: false
+    type: "fx_openapi"
+    mock: true
