@@ -77,6 +77,24 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+  collector-multi-asset:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.collector
+    container_name: swaram-collector-multi-asset
+    command: ["python", "-m", "apps.collectors.multi_asset_runner"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-swaram}:${POSTGRES_PASSWORD:-swaram_secret}@postgres:5432/${POSTGRES_DB:-swaram_db}
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: INFO
+      TIMEZONE: UTC
+      USER_TIMEZONE: Asia/Kolkata
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - swaram-net
 

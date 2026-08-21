@@ -63,6 +63,42 @@ class DeltaCollectorRunner:
 
         logger.info(f"Loaded {len(self.instrument_map)} active Delta instruments into memory.", map=self.instrument_map)
 
+        # Bootstrap historical candles via REST if DB has few/no candles
+        from swaram.providers.crypto.delta_rest import DeltaRestClient
+        from swaram.core.time import from_epoch_us, to_utc
+        from swaram.storage.repositories.market_repo import MarketDataRepository
+
+        rest_client = DeltaRestClient(self.settings.delta_rest_url)
+        async with get_db_session() as session:
+            market_repo = MarketDataRepository(session)
+            for canonical, inst_id in self.instrument_map.items():
+                existing = await market_repo.get_recent_candles(inst_id, timeframe="1m", limit=10)
+                if len(existing) < 10:
+                    delta_symbol = canonical.split(":")[-1].replace("/", "")
+                    logger.info(f"Bootstrapping historical candles for {canonical} ({delta_symbol}) via REST...")
+                    raw_candles = await rest_client.get_candles(delta_symbol, resolution="1m", limit=100)
+                    candles_to_seed = []
+                    for c in raw_candles:
+                        if isinstance(c, dict):
+                            raw_t = c.get("time") or c.get("timestamp")
+                            c_ts = from_epoch_us(raw_t) if raw_t else None
+                            if c_ts:
+                                candles_to_seed.append(Candle(
+                                    timestamp=c_ts,
+                                    instrument_id=inst_id,
+                                    provider="delta",
+                                    timeframe="1m",
+                                    open=float(c.get("open", 0)),
+                                    high=float(c.get("high", 0)),
+                                    low=float(c.get("low", 0)),
+                                    close=float(c.get("close", 0)),
+                                    volume=float(c.get("volume", 0)),
+                                    trade_count=int(c.get("trades", 0)),
+                                ))
+                    if candles_to_seed:
+                        await market_repo.add_candles(candles_to_seed)
+                        logger.info(f"Seeded {len(candles_to_seed)} historical candles for {canonical}.")
+
     async def _flush_loop(self) -> None:
         """Background task periodically flushing buffered market events to Postgres."""
         while self._running:

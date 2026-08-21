@@ -10,6 +10,7 @@ from swaram.models.market_data import (
 )
 from swaram.models.health import ProviderHealthRecord
 from swaram.models.analytics import MarketStructureEvent, IndicatorSnapshot
+from swaram.models.macro import MacroEvent
 
 __all__ = [
     "Base",
@@ -24,4 +25,5 @@ __all__ = [
     "ProviderHealthRecord",
     "MarketStructureEvent",
     "IndicatorSnapshot",
+    "MacroEvent",
 ]

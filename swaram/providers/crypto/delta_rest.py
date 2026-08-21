@@ -40,3 +40,20 @@ class DeltaRestClient:
         except Exception as e:
             logger.warning(f"Error calling Delta REST /v2/tickers/{symbol}", error=str(e))
             return None
+
+    async def get_candles(self, symbol: str, resolution: str = "1m", limit: int = 100) -> List[Dict[str, Any]]:
+        """Fetch historical candles from Delta REST API."""
+        url = f"{self.base_url}/v2/history/candles?symbol={symbol}&resolution={resolution}&limit={limit}"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        res = data.get("result", [])
+                        if isinstance(res, list):
+                            return res
+                    logger.warning(f"Failed to fetch Delta candles for {symbol}", status=resp.status)
+                    return []
+        except Exception as e:
+            logger.warning(f"Error fetching Delta candles for {symbol}", error=str(e))
+            return []
