@@ -78,7 +78,7 @@ async def get_market_snapshot(
 @router.get("/{symbol}/candles", summary="Get Historical OHLCV Candles")
 async def get_candles(
     symbol: str,
-    timeframe: str = Query("1m", regex="^(1m|5m|15m|1h|4h|1d)$"),
+    timeframe: str = Query("1m", pattern="^(1m|5m|15m|1h|4h|1d)$"),
     limit: int = Query(100, ge=1, le=1000),
     session: AsyncSession = Depends(get_session),
 ) -> Dict[str, Any]:

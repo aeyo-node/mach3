@@ -72,7 +72,7 @@ class DeltaWebSocketProvider(BaseMarketDataProvider):
         self.symbols = symbols
         if channels:
             self.channels = channels
-        if self._ws and not self._ws.closed:
+        if self._ws and self._ws.open:
             sub_msg = self._build_subscription_message(self.symbols, self.channels)
             await self._ws.send(json.dumps(sub_msg))
             logger.info("Sent subscription request to Delta WS", symbols=self.symbols, channels=self.channels)
@@ -89,7 +89,7 @@ class DeltaWebSocketProvider(BaseMarketDataProvider):
         while self._running:
             try:
                 await asyncio.sleep(self.heartbeat_interval_sec)
-                if self._ws and not self._ws.closed:
+                if self._ws and self._ws.open:
                     ping_msg = json.dumps({"type": "ping"})
                     await self._ws.send(ping_msg)
             except asyncio.CancelledError:

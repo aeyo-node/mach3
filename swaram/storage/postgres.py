@@ -62,7 +62,10 @@ async def init_db(engine: AsyncEngine | None = None) -> None:
     logger.info("Initializing database schema...")
     
     async with eng.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        try:
+            await conn.run_sync(Base.metadata.create_all)
+        except Exception as e:
+            logger.warning(f"Base.metadata.create_all encountered an issue (safe to ignore if tables exist): {e}")
         
         # Check if TimescaleDB is available and create hypertables
         try:
