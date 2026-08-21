@@ -1,6 +1,6 @@
 import asyncio
 from swaram.config.loader import load_yaml_config
-from swaram.core.logging import get_logger, setup_logging
+from swaram.core.logging import get_logger
 from swaram.storage.postgres import get_db_session, init_db
 from swaram.storage.repositories.instrument_repo import InstrumentRepository
 
@@ -8,9 +8,6 @@ logger = get_logger("storage.seed")
 
 
 async def seed_instruments() -> None:
-    setup_logging()
-    await init_db()
-
     config = load_yaml_config("symbols.yaml")
     symbols_list = config.get("symbols", [])
 

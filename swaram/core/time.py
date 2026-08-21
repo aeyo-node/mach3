@@ -62,6 +62,16 @@ def epoch_ms(dt: Optional[datetime] = None) -> int:
     return int(target.timestamp() * 1000)
 
 
+def from_epoch_us(epoch_us: Union[int, float, str, None]) -> Optional[datetime]:
+    """Convert a Unix epoch in microseconds to a UTC datetime. Returns None if input is None/0."""
+    if epoch_us is None:
+        return None
+    val = float(epoch_us)
+    if val == 0:
+        return None
+    return to_utc(val)
+
+
 def calc_latency_ms(source_time: Union[datetime, int, float, str], received_time: Optional[datetime] = None) -> float:
     """Calculate ingestion latency in milliseconds between source timestamp and received time."""
     src_dt = to_utc(source_time)
