@@ -14,6 +14,7 @@ from swaram.models.macro import MacroEvent
 from swaram.models.orderflow import OrderflowAnalyticsSnapshot, PositioningRecord
 from swaram.models.anomaly import MarketAnomalyRecord
 from swaram.models.execution import AccountBalanceRecord, LiveOrderRecord
+from swaram.models.backtest import BacktestRunRecord
 
 __all__ = [
     "Base",
@@ -34,4 +35,5 @@ __all__ = [
     "MarketAnomalyRecord",
     "AccountBalanceRecord",
     "LiveOrderRecord",
+    "BacktestRunRecord",
 ]

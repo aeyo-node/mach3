@@ -9,6 +9,11 @@ from apps.api.routes.agent_tools import router as agent_tools_router
 from apps.api.routes.orderflow import router as orderflow_router
 from apps.api.routes.telemetry import router as telemetry_router
 from apps.api.routes.execution import router as execution_router
+from apps.api.routes.backtest import router as backtest_router
+from apps.api.routes.ws import router as ws_router
+from apps.api.routes.strategy import router as strategy_router
+from apps.api.routes.risk import router as risk_router
+from apps.api.routes.metrics import router as metrics_router
 from swaram.config.settings import get_settings
 from swaram.core.logging import get_logger, setup_logging
 from swaram.storage.postgres import close_db, init_db
@@ -68,6 +73,11 @@ def create_app() -> FastAPI:
     app.include_router(agent_tools_router)   # specific: /agent/*
     app.include_router(telemetry_router)     # specific: /health/telemetry, /market/anomalies
     app.include_router(execution_router)     # specific: /order/*, /account/*
+    app.include_router(backtest_router)      # specific: /backtest/*
+    app.include_router(ws_router)            # WebSocket: /ws/market/{symbol}, /ws/agent/{symbol}
+    app.include_router(strategy_router)      # specific: /strategy/*
+    app.include_router(risk_router)          # specific: /risk/*
+    app.include_router(metrics_router)       # specific: /metrics
     app.include_router(market_router)       # catch-all: /market/{symbol}
 
     return app
